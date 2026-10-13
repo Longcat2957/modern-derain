@@ -87,10 +87,11 @@ clean-only 합성 rain·RainMix·학습 증강·다른 split fallback을 calibra
 [`weights/README.md`](weights/README.md)에 공식 URL·고정 upstream commit·실제 크기·SHA-256을 기록했다.
 현재 `weights/efficientderain-rain1400-v3.pt`는 공식 `.pth`의 52개 FP32 tensor를
 key·shape·dtype·값 변경 없이 포장한 **109,600,519-byte** 자산이다. optimizer·pickle model 객체는 없다.
-큰 가중치는 Git/wheel에서 제외한다. **자체 Release 게시/URL 연결은 사용자 요청에 따라 GitHub 푸시 이후에 진행한다.**
-다른 checkout에서 Release 연결 전 기본 파일이 없으면 오류를 내며 이미 확보한 `--checkpoint`로 offline 실행할 수 있다.
+큰 가중치는 Git/wheel에서 제외하고 [고정 `weights-v1` Release](https://github.com/Longcat2957/modern-derain/releases/tag/weights-v1)에 제공한다.
+기본 파일이 없으면 그 파일을 사용하는 명령에서만 [검증된 FP32 파일](https://github.com/Longcat2957/modern-derain/releases/download/weights-v1/efficientderain-rain1400-v3.pt)을 내려받는다.
+이미 확보한 `--checkpoint`로 offline 실행할 수 있다.
 임의 upstream 다운로드·후보 URL 순회·`latest` fallback은 없다.
-Release URL 연결 후 helper는 임시 파일의 크기·SHA-256 검증 후 원자적으로 설치하고 기존 다른 내용을 덮어쓰지 않는다.
+helper는 임시 파일의 크기·SHA-256 검증 후 원자적으로 설치하고 기존 다른 내용을 덮어쓰지 않는다.
 import/help에서 다운로드하지 않는다. 외부 weight 이용 조건을 코드의 MIT/AGPL로 대신하지 않는다.
 
 kernel 3×3·RGB·burst 1의 KPN을 유지한다. 27채널 core를 dilation 1·2·3·4가 공유하며

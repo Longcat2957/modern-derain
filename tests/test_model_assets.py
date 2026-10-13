@@ -33,6 +33,7 @@ def test_download_checks_hash_installs_once_and_cleans_failure(tmp_path):
 
 def test_resolver_never_falls_back_for_missing_user_checkpoint(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(assets, "DEFAULT_RELEASE_URL", None)
     with pytest.raises(FileNotFoundError, match="user checkpoint"):
         assets.resolve_checkpoint(Path("user.pt"))
     with pytest.raises(FileNotFoundError, match="Release URL"):

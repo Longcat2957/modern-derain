@@ -8,8 +8,10 @@ from urllib.request import urlopen
 from modern_derain.artifacts import sha256
 
 DEFAULT_CHECKPOINT = Path("weights/efficientderain-rain1400-v3.pt")
-# Set only after a versioned asset has actually been published in this project's Release.
-DEFAULT_RELEASE_URL = None
+DEFAULT_RELEASE_URL = (
+    "https://github.com/Longcat2957/modern-derain/releases/download/weights-v1/"
+    "efficientderain-rain1400-v3.pt"
+)
 DEFAULT_SHA256 = "b7be892d6483e7e41b65f143ed1d6fc199cdaece8229f4a540e897a80abeeab6"
 DEFAULT_SIZE = 109600519
 
