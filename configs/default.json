@@ -1,0 +1,81 @@
+{
+  "model": {
+    "color": true,
+    "burst_length": 1,
+    "blind_est": true,
+    "kernel_size": [
+      3
+    ],
+    "sep_conv": false,
+    "channel_att": false,
+    "spatial_att": false,
+    "upMode": "bilinear",
+    "core_bias": false
+  },
+  "data": {
+    "path": "data/paired",
+    "layout": "paired",
+    "train": "train",
+    "val": "val",
+    "test": "test",
+    "calibration": "calibration"
+  },
+  "training": {
+    "checkpoint": "weights/efficientderain-rain1400-v3.pt",
+    "resume": null,
+    "device": "cuda",
+    "epochs": 250,
+    "batch_size": 16,
+    "lr": 0.0002,
+    "betas": [
+      0.5,
+      0.999
+    ],
+    "weight_decay": 0.0,
+    "decay_start_epoch": 50,
+    "crop_size": 256,
+    "seed": 1234,
+    "num_workers": 0,
+    "persistent_workers": false,
+    "drop_last": false,
+    "amp": false,
+    "output_dir": "artifacts/train"
+  },
+  "quantization": {
+    "steps": 0,
+    "calibration_samples": 32,
+    "exclude_modules": [
+      "outc",
+      "conv_final"
+    ]
+  },
+  "export": {
+    "checkpoint": "weights/efficientderain-rain1400-v3.pt",
+    "shape": null,
+    "opset": 18,
+    "output": "artifacts/export/model.onnx",
+    "precision": "fp32",
+    "device": "cpu"
+  },
+  "inference": {
+    "checkpoint": "weights/efficientderain-rain1400-v3.pt",
+    "device": "cuda",
+    "protocol": "official-ceil16",
+    "input": null,
+    "output": "artifacts/infer"
+  },
+  "evaluation": {
+    "checkpoint": "weights/efficientderain-rain1400-v3.pt",
+    "device": "cuda",
+    "protocol": "official-ceil16",
+    "split": "val",
+    "output": "artifacts/eval/results.json",
+    "max_psnr_drop_db": 0.3
+  },
+  "benchmark": {
+    "shape": null,
+    "target_fps": null,
+    "target_p95_ms": null,
+    "power_mode": null
+  }
+}

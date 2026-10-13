@@ -1,0 +1,17 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+/.venv/
+/data/
+/artifacts/
+/dist/
+/weights/efficientderain-rain1400-v3.pt
+/weights/upstream-v3-rain1400.pth
+.pytest_cache/
+.ruff_cache/

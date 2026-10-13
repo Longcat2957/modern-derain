@@ -1,0 +1,9 @@
+{
+  "data": {
+    "path": "data/Rain1400",
+    "layout": "rain1400"
+  },
+  "training": {
+    "checkpoint": "weights/efficientderain-rain1400-v3.pt"
+  }
+}

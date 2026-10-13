@@ -1,0 +1,47 @@
+{
+  "source_page": "https://xueyangfu.github.io/projects/cvpr2017.html",
+  "archive_url": "https://drive.google.com/file/d/10cu6MA4fQ2Dz16zfzyrQWDDhOWhRdhpq/view",
+  "archive_bytes": 898292342,
+  "observed_date": "2026-10-13",
+  "central_directory_range": [
+    896310498,
+    898292319
+  ],
+  "central_directory_sha256": "63bec2f3ca9b5c0b090c25ec3193298c9356d924aff78e5b4b20785597f3fdab",
+  "verification": "HTTP byte-range inspection of complete ZIP central directory and embedded readme; image payloads not downloaded or decoded",
+  "training": {
+    "clean_ids": [
+      1,
+      900
+    ],
+    "clean_count": 900,
+    "rainy_count": 12600
+  },
+  "testing": {
+    "clean_ids": [
+      901,
+      1000
+    ],
+    "clean_count": 100,
+    "rainy_count": 1400
+  },
+  "rain_ids": [
+    1,
+    14
+  ],
+  "sample_paths": [
+    "training/ground_truth/1.jpg",
+    "training/rainy_image/1_1.jpg",
+    "training/rainy_image/900_14.jpg",
+    "testing/ground_truth/901.jpg",
+    "testing/rainy_image/901_1.jpg",
+    "testing/rainy_image/1000_14.jpg"
+  ],
+  "extensions": [
+    ".jpg"
+  ],
+  "rainy_identity_sha256": "f0698cc1e6595523e17d05b797f475d65eff30528b8e55b7f99444c5b49146c8",
+  "rainy_identity_format": "14000 little-endian uint32 (size, CRC32) records, clean ID then rain ID",
+  "ground_truth_identity_sha256": "aff91ac1d902616044e057197f7f4f1729784e16222d782fa1adc6fac09eb83f",
+  "ground_truth_identity_format": "1000 little-endian uint32 (size, CRC32) records, ordered by clean ID"
+}

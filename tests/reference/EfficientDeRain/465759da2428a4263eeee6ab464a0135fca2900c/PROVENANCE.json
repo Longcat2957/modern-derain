@@ -1,0 +1,68 @@
+{
+  "repository": "https://github.com/tsingqguo/efficientderain",
+  "commit": "465759da2428a4263eeee6ab464a0135fca2900c",
+  "license": "MIT; Copyright (c) 2020 Qing Guo",
+  "test_only": true,
+  "files": {
+    "network.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/network.py",
+      "size": 14451,
+      "sha256": "c9784458f23ca8e6e3197948780239bfe2cab450f70c220eb0443a7c45ef9f83",
+      "git_blob": "2893f07d88e82e4b50a4582cd44ef31e4d948d59"
+    },
+    "pytorch_ssim/__init__.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/pytorch_ssim/__init__.py",
+      "size": 2635,
+      "sha256": "513715aa8ab5acab935586930d2bbae38c10d6bfefdf74a6a2f6cc81b07152d4",
+      "git_blob": "738e8038942e85592aa7c88070fc6e83e9f9c776"
+    },
+    "README.md": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/README.md",
+      "size": 4080,
+      "sha256": "2b6c03efdc6ea3802b1ad13ddc082df6ddc1de50d3e5715fcd028bb30b321698",
+      "git_blob": "b3d53281fb949564aad2823886972907e9d73a41"
+    },
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/LICENSE",
+      "size": 1065,
+      "sha256": "6a15ec7ae1b71b9a4cf4c320f0e78f75e76114420c3cf42b2db86508d57a8b25",
+      "git_blob": "b1ab16092f4a6a0bd74a9f7ebf4c1872159bdcf1"
+    },
+    "trainer.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/trainer.py",
+      "size": 10867,
+      "sha256": "e1d9701438854320432d6a00a27a9081684ce62664834cb2f51b609283a61097",
+      "git_blob": "7c5850ff24dfb26f1396c8f9b4707739b868cad5"
+    },
+    "train_rain1400.sh": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/train_rain1400.sh",
+      "size": 439,
+      "sha256": "f2718cee5d7d5f145f3e5b57e9c99154bd0dcbfb3b04b848ffdb7ac770aa48e6",
+      "git_blob": "c820a30649347431629fd6bdd36538f10a564fce"
+    },
+    "train.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/train.py",
+      "size": 5747,
+      "sha256": "3612d4321736bbc986a3c95951fb715b81ed52c1d84bffd0374a454b67932ad3",
+      "git_blob": "010e584c3e331f55e2afcb1eedc6cee78641be87"
+    },
+    "dataset.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/dataset.py",
+      "size": 16269,
+      "sha256": "9249a59a58e22b4b3709d9dd114672849f5a7d5441cc51b266b28d5c216b9f5b",
+      "git_blob": "704164bcdcbb4ce744f6bdc84dd56f5cbbf15990"
+    },
+    "utils.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/utils.py",
+      "size": 9653,
+      "sha256": "680e1a200c64a897470ddabcc7770d2654c5cd5c2d6a31159d05c56ec80e60e7",
+      "git_blob": "626012bb03a1b2f1054fa765fcc6b5962813ed86"
+    },
+    "validation.py": {
+      "url": "https://raw.githubusercontent.com/tsingqguo/efficientderain/465759da2428a4263eeee6ab464a0135fca2900c/validation.py",
+      "size": 6922,
+      "sha256": "955c75bcb3a704f0b5548a4b31e916208f887e77e26c237c5f397ec295e9ebbb",
+      "git_blob": "0e4525a9342a35d9a165c5f2fb9f1ad5e4033a8d"
+    }
+  }
+}
