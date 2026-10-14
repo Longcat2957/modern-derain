@@ -87,6 +87,44 @@ assert not any(name.split('.')[0] in {'torch','modelopt','cv2','albumentations',
     assert result.returncode == 0, result.stderr
 
 
+def test_module_entrypoint_help_never_imports_optional_packages():
+    program = """
+import runpy
+import sys
+sys.argv = ['modern_derain', '--help']
+try:
+    runpy.run_module('modern_derain', run_name='__main__')
+except SystemExit as error:
+    assert error.code == 0
+assert not any(name.split('.')[0] in {'torch','modelopt','cv2','albumentations','skimage','onnx'} for name in sys.modules)
+"""
+    result = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "train" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("command", "module", "function"),
+    [
+        ("train", "modern_derain.training.loop", "run_train"),
+        ("qat", "modern_derain.training.quantize", "run_qat"),
+    ],
+)
+def test_nonprimary_worker_has_no_result_stdout(monkeypatch, command, module, function):
+    fake = types.ModuleType(module)
+
+    def run_worker(config):
+        print("worker log")
+        return None
+
+    setattr(fake, function, run_worker)
+    monkeypatch.setitem(sys.modules, module, fake)
+    result = runner.invoke(app, [command])
+    assert result.exit_code == 0, result.output
+    assert result.stdout == ""
+    assert "worker log" in result.stderr
+
+
 def test_cli_override_and_json_streams(tmp_path, monkeypatch):
     fake = types.ModuleType("modern_derain.training.quantize")
 

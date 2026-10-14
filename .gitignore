@@ -8,9 +8,13 @@ wheels/
 
 # Virtual environments
 /.venv/
+
+# Local datasets and generated run artifacts (including multi-GPU validation)
 /data/
 /artifacts/
 /dist/
+
+# Release-managed checkpoints
 /weights/efficientderain-rain1400-v3.pt
 /weights/upstream-v3-rain1400.pth
 .pytest_cache/

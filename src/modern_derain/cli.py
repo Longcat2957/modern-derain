@@ -35,7 +35,8 @@ def _run(module, function, profile, config, overrides, *args):
         with redirect_stdout(sys.stderr):
             implementation = getattr(importlib.import_module(module), function)
             result = implementation(settings, *args)
-        typer.echo(json.dumps(result, allow_nan=False))
+        if result is not None:
+            typer.echo(json.dumps(result, allow_nan=False))
     except ModuleNotFoundError as error:
         if error.name and (
             error.name.startswith("modelopt") or error.name in ("requests", "huggingface_hub")
@@ -60,7 +61,7 @@ def train(
     checkpoint: Checkpoint = None,
     resume: Checkpoint = None,
     epochs: Annotated[int | None, typer.Option(min=1)] = None,
-    batch_size: Annotated[int | None, typer.Option(min=1)] = None,
+    batch_size: Annotated[int | None, typer.Option(min=1, help="Batch size per GPU.")] = None,
     lr: Annotated[float | None, typer.Option(min=0)] = None,
     crop_size: Annotated[int | None, typer.Option(min=16)] = None,
     seed: Annotated[int | None, typer.Option(min=0)] = None,
@@ -69,7 +70,7 @@ def train(
     device: Annotated[str | None, typer.Option()] = None,
     output: Annotated[Path | None, typer.Option()] = None,
 ):
-    """Fine-tune FP32 KPN on paired training folders."""
+    """Fine-tune FP32 KPN; use torchrun for multiple CUDA GPUs."""
     options = _strings(
         {
             "checkpoint": checkpoint,
@@ -102,7 +103,7 @@ def qat(
     resume: Checkpoint = None,
     steps: Annotated[int | None, typer.Option(min=0)] = None,
     calibration_samples: Annotated[int | None, typer.Option(min=1)] = None,
-    batch_size: Annotated[int | None, typer.Option(min=1)] = None,
+    batch_size: Annotated[int | None, typer.Option(min=1, help="Batch size per GPU.")] = None,
     num_workers: Annotated[int | None, typer.Option(min=0)] = None,
     amp: Annotated[bool | None, typer.Option("--amp/--no-amp")] = None,
     device: Annotated[str | None, typer.Option()] = None,

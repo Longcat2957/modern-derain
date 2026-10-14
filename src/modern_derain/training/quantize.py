@@ -1,7 +1,8 @@
 """ModelOpt static INT8 CNN calibration; pixel kernels remain floating point."""
 
+import os
 import sys
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 
 import torch
@@ -18,7 +19,8 @@ from modern_derain.data.sources import (
     validate_split_sources,
 )
 from modern_derain.models.quantized import INT8_BACKEND, register_int8_backend
-from modern_derain.training.loop import save_checkpoint, select_device, train_model
+from modern_derain.training.distributed import DistributedContext, distributed_session
+from modern_derain.training.loop import save_checkpoint, train_model
 
 
 def quantizer_summary(model) -> list[dict]:
@@ -149,7 +151,15 @@ def restore_quantized_model(model, payload: dict):
     return model
 
 
-def run_qat(config: dict) -> dict:
+def run_qat(config: dict) -> dict | None:
+    with distributed_session(config["training"]["device"]) as context:
+        if context.is_primary:
+            return _run_qat(config, context)
+        with open(os.devnull, "w") as sink, redirect_stdout(sink), redirect_stderr(sink):
+            return _run_qat(config, context)
+
+
+def _run_qat(config: dict, context: DistributedContext) -> dict | None:
     import modelopt.torch.opt as mto
 
     from modern_derain.models.assets import resolve_checkpoint
@@ -159,11 +169,13 @@ def run_qat(config: dict) -> dict:
     shape = config["export"]["shape"]
     if shape is None:
         raise ValueError("Calibration/QAT requires export.shape=[1,3,H,W]")
-    path = resolve_checkpoint(training["resume"] or training["checkpoint"])
+    path = context.primary_call(
+        lambda: resolve_checkpoint(training["resume"] or training["checkpoint"])
+    )
     model, payload = load_checkpoint(
         path, config_model=config["model"], preprocessing=DEFAULT_PREPROCESSING
     )
-    device = select_device(training["device"])
+    device = context.device
     model = model.to(device)
     inherited_training = training_snapshots(payload)
     if "modelopt_state" in payload:
@@ -210,7 +222,7 @@ def run_qat(config: dict) -> dict:
                 for sample in samples:
                     image, _ = prepare_rgb(read_rgb(sample.rainy), protocol="fixed", shape=shape)
                     tensor = torch.from_numpy(image).unsqueeze(0).to(device)
-                    if not torch.isfinite(calibration_model(tensor)).all():
+                    if context.any_true(not bool(torch.isfinite(calibration_model(tensor)).all())):
                         raise ValueError(f"Nonfinite calibration output for {sample.id}")
 
         model, policy = calibrate_model(model, forward_loop, quantization["exclude_modules"])
@@ -238,48 +250,58 @@ def run_qat(config: dict) -> dict:
         raise ValueError(
             "QAT --resume requires steps>0; use --checkpoint for calibration-only export"
         )
-    run_dir = create_run_dir(config, "qat")
-    checkpoint = run_dir / "ptq.pt"
-    result_payload = {
-        "format_version": 1,
-        "kind": "ptq",
-        "state_dict": model.state_dict(),
-        "modelopt_state": mto.modelopt_state(model),
-        "config": {
-            "model": config["model"],
-            "preprocessing": DEFAULT_PREPROCESSING,
-            "quantization": deepcopy(quantization),
-        },
-        "calibration": calibration,
-        "provenance": {
-            "initial": payload.get("provenance", {}),
-            "checkpoint": str(path),
-            "checkpoint_sha256": sha256(path),
-        },
-    }
-    if payload.get("data_snapshot") is not None:
-        result_payload["data_snapshot"] = payload["data_snapshot"]
-    if payload.get("inherited_training_snapshots") is not None:
-        result_payload["inherited_training_snapshots"] = payload["inherited_training_snapshots"]
-    if payload.get("heldout_snapshots") is not None:
-        result_payload["heldout_snapshots"] = payload["heldout_snapshots"]
-    save_checkpoint(checkpoint, result_payload)
-    metadata = run_metadata(config, path)
-    metadata["environment"]["torch_runtime"] = {
-        "cuda": torch.version.cuda,
-        "cudnn": torch.backends.cudnn.version(),
-        "device": str(device),
-    }
-    metadata["calibration"] = calibration
-    write_json(run_dir / "metadata.json", metadata)
-    result = {
-        "command": "qat",
-        "kind": "ptq",
-        "steps": 0,
-        "checkpoint": str(checkpoint),
-        "checkpoint_sha256": sha256(checkpoint),
-        "calibration_samples": calibration["samples"],
-        "artifacts": str(run_dir),
-    }
-    write_json(run_dir / "result.json", result)
-    return result
+
+    def save_ptq():
+        run_dir = create_run_dir(config, "qat")
+        checkpoint = run_dir / "ptq.pt"
+        result_payload = {
+            "format_version": 1,
+            "kind": "ptq",
+            "state_dict": model.state_dict(),
+            "modelopt_state": mto.modelopt_state(model),
+            "config": {
+                "model": config["model"],
+                "preprocessing": DEFAULT_PREPROCESSING,
+                "quantization": deepcopy(quantization),
+            },
+            "calibration": calibration,
+            "provenance": {
+                "initial": payload.get("provenance", {}),
+                "checkpoint": str(path),
+                "checkpoint_sha256": sha256(path),
+            },
+        }
+        if payload.get("data_snapshot") is not None:
+            result_payload["data_snapshot"] = payload["data_snapshot"]
+        if payload.get("inherited_training_snapshots") is not None:
+            result_payload["inherited_training_snapshots"] = payload["inherited_training_snapshots"]
+        if payload.get("heldout_snapshots") is not None:
+            result_payload["heldout_snapshots"] = payload["heldout_snapshots"]
+        save_checkpoint(checkpoint, result_payload)
+        metadata = run_metadata(config, path)
+        metadata["environment"]["torch_runtime"] = {
+            "cuda": torch.version.cuda,
+            "cudnn": torch.backends.cudnn.version(),
+            "device": str(device),
+        }
+        metadata["environment"]["distributed"] = {
+            "backend": "nccl" if context.distributed else None,
+            "world_size": context.world_size,
+            "calibration": "identical subset independently consumed on every rank",
+        }
+        metadata["calibration"] = calibration
+        write_json(run_dir / "metadata.json", metadata)
+        result = {
+            "command": "qat",
+            "kind": "ptq",
+            "steps": 0,
+            "checkpoint": str(checkpoint),
+            "checkpoint_sha256": sha256(checkpoint),
+            "calibration_samples": calibration["samples"],
+            "artifacts": str(run_dir),
+        }
+        write_json(run_dir / "result.json", result)
+        return result
+
+    result = context.primary_call(save_ptq)
+    return result if context.is_primary else None

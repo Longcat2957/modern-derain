@@ -115,6 +115,26 @@ uv run --locked --extra train modern-derain train --data data/paired \
   --checkpoint weights/efficientderain-rain1400-v3.pt --batch-size 1 --output artifacts/finetune
 ```
 
+여러 CUDA GPU의 학습은 PyTorch DistributedDataParallel과 `torchrun`을 사용한다.
+GPU당 프로세스 하나가 실행되며 아래 명령은 GPU 2장을 사용한다.
+`--nproc-per-node`를 사용할 GPU 수에 맞추고 일부 GPU를 선택하려면 `CUDA_VISIBLE_DEVICES`를 지정한다.
+
+```bash
+uv run --locked --extra train torchrun --standalone --nproc-per-node=2 \
+  --module modern_derain train --config configs/train.json \
+  --batch-size 1 --output artifacts/train-2gpu
+```
+
+`training.batch_size`와 `--batch-size`는 **GPU별 배치 크기**다. 위 명령의 전체 배치는 2이며,
+기본 배치 16을 GPU 2장에 사용하면 전체 배치는 32가 된다. 기존 전체 배치를 유지하려면
+GPU별 배치를 나누어 설정한다. 학습률은 자동 변경하지 않는다.
+`torchrun`이 설정한 local rank에 따라 CUDA 장치를 선택하며 분산 CPU 학습은 지원하지 않는다.
+각 epoch에 sampler의 shuffle 순서를 갱신하고 GPU마다 서로 다른 sample을 학습한다.
+sample 중복을 피하려고 GPU 수로 나누어떨어지지 않는 마지막 sample은 제외한다
+(최대 GPU 수 − 1개). `training.drop_last=true`이면 GPU별 마지막 불완전 배치도 제외한다.
+checkpoint·결과 JSON·진행 표시는 rank 0에서 작성하고 rank별 RNG 상태와 분산 실행 정보를 저장한다.
+저장된 모델에는 DDP의 `module.` 접두사가 없으므로 단일 GPU inference/export에도 사용할 수 있다.
+
 추론은 이미지/폴더를 받아 새 PNG와 metadata를 저장한다. 평가는 정렬된 GT pair가 필요하다.
 GT 없는 드론 장면의 PSNR/SSIM을 보고하지 않는다.
 공식 복원은 ×255 → clip → uint8 **절삭** → float32 → BGR → 원크기 bilinear resize다.
@@ -136,6 +156,7 @@ Albumentations 독립 RNG·DataLoader generator·실제 데이터 snapshot을 �
 각 epoch 파일명은 결과 JSON에 반환한다. `--checkpoint`는 초기 가중치, `--resume`는 학습 상태다.
 두 CLI 옵션을 함께 주면 오류이며 `--resume` 단독은 config의 초기 checkpoint를 대체한다.
 재개는 동일 model/preprocessing/augmentation/sampler/batch/seed/worker/schedule과 데이터 fingerprint를 요구한다.
+분산 재개는 동일 GPU 수도 요구하며 같은 `torchrun` 명령에 `--resume`를 사용한다.
 정확한 crop/data-order replay는 `num_workers=0`인 epoch 경계다. CPU 작은 재개는 tensor 완전 일치를 검증했다.
 CUDA backward 비결정성은 별도 오차로 기록한다. 중간 epoch QAT step 종료/중단 checkpoint는 inference/export용이며 exact resume를 허용하지 않는다.
 
@@ -162,6 +183,11 @@ uv run --locked --extra qat modern-derain qat --config configs/train.json \
 uv run --locked --extra qat modern-derain qat --config configs/train.json \
   --checkpoint artifacts/ptq/ptq.pt --height 256 --width 256 --steps 100 --output artifacts/qat
 
+uv run --locked --extra qat torchrun --standalone --nproc-per-node=2 \
+  --module modern_derain qat --config configs/train.json \
+  --checkpoint artifacts/ptq/ptq.pt --height 256 --width 256 \
+  --batch-size 1 --steps 100 --output artifacts/qat-2gpu
+
 uv run --locked --extra export modern-derain export \
   --height 256 --width 256 --output artifacts/export/fp32.onnx
 
@@ -171,6 +197,9 @@ uv run --locked --extra export --extra qat modern-derain export \
 ```
 
 `--steps 0`은 calibration만 수행하여 train 폴더를 요구하지 않는다.
+QAT의 `--steps`는 모든 GPU가 함께 수행하는 optimizer step 수이며 GPU 수를 곱하지 않는다.
+분산 calibration은 각 GPU에서 동일한 명시적 subset을 사용하며 학습용으로 분할하지 않는다.
+ModelOpt가 calibration scale을 동기화하고 DDP가 학습 모델의 weight와 buffer를 동기화한다.
 ModelOpt `INT8_DEFAULT_CFG`를 출발점으로 CNN의 static signed INT8 weight per-channel axis 0,
 activation per-tensor를 사용한다. 초기에는 `outc`·`conv_final`을 고정밀도로 남기고 동적 필터는 FP32다.
 24개 Conv의 W8A8 정책이며 전체 모델 W8A8 실행을 의미하지 않는다.
@@ -244,5 +273,12 @@ trtexec의 pipelined throughput/GPU compute time과 이미지 전후처리 포�
 테스트는 CLI/config·data/누수/crop/RNG·공식 resize/recovery/SSIM·모델/loss gradient,
 weight strict load/포장/download 실패 복구·epoch 재개·ModelOpt 복원/backward·FP/QDQ ONNX를 다룬다.
 로컬 실행 evidence는 `artifacts/validation/`과 `artifacts/verification/`에 있다.
+2026-10-14에는 RTX 4090 두 장에서 공식 가중치로 32×32 FP32/QAT 각 2 epoch·4 step과
+epoch 재개, AMP 및 GPU별 DataLoader worker 1개, 256×256 FP32/QAT 각 1 step을 확인했다.
+분산 gradient는 단일 global batch 기준과 비교했고 작은 모델의 rank별 crop/RNG 재개는
+tensor 완전 일치를 확인했다. 전체 KPN의 CUDA backward 비결정성은 별도 기록한다.
+검증 입력은 생성한 paired fixture이며 품질 평가나 속도 향상 측정이 아니다.
+체크포인트의 단일 프로세스 strict 복원 결과는 `artifacts/validation-ddp/summary.json`에 보존한다.
+검증용 checkpoint·입력 fixture·임시 스크립트·로그는 확인 후 정리했다.
 전체 Rain1400 품질·대표 드론 calibration·Orin 품질/성능과 구분한다.
-가변 입력·타일링·분산학습·외부 추적·2:4 sparsity·DLA는 추가하지 않았다.
+가변 입력·타일링·외부 추적·2:4 sparsity·DLA는 추가하지 않았다.
